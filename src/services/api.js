@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
 export class ApiService {
   static async saveTree(name, treeData, algorithm) {

@@ -33,7 +33,6 @@ function App() {
         </div>
 
         <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left">
-          
           {/* About Section */}
           <div>
             <h3 className="text-lg font-semibold mb-2">About</h3>
@@ -51,12 +50,16 @@ function App() {
             <p className="text-sm">Location: India</p>
           </div>
 
-          {/* Connect Section */}
+          {/* Connect Section with image icons */}
           <div>
             <h3 className="text-lg font-semibold mb-2">Connect</h3>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center justify-center sm:justify-start gap-2">
-                <i className="fab fa-linkedin text-blue-400"></i>
+              <li className="flex items-center justify-center sm:justify-start gap-3">
+                <img
+                  src="https://www.citypng.com/public/uploads/preview/hd-vector-flat-linkedin-in-round-icon-png-701751695046390m4phkuuiqm.png"
+                  alt="LinkedIn"
+                  className="w-5 h-5"
+                />
                 <a
                   href="https://www.linkedin.com/in/nimarjot-kaur-03039b273/"
                   target="_blank"
@@ -66,8 +69,12 @@ function App() {
                   LinkedIn
                 </a>
               </li>
-              <li className="flex items-center justify-center sm:justify-start gap-2">
-                <i className="fab fa-github text-gray-400"></i>
+              <li className="flex items-center justify-center sm:justify-start gap-3">
+                <img
+                  src="https://images.seeklogo.com/logo-png/44/2/github-colored-logo-png_seeklogo-443793.png"
+                  alt="GitHub"
+                  className="w-5 h-5"
+                />
                 <a
                   href="https://github.com/Nimarjot1"
                   target="_blank"
@@ -79,7 +86,6 @@ function App() {
               </li>
             </ul>
           </div>
-
         </div>
       </footer>
     </div>

@@ -4,6 +4,17 @@ An intuitive **Binary Tree Visualizer** that allows users to create, visualize, 
 
 🔗 **Live Demo**: [https://binary-tree-visualizer-3ua2.onrender.com](https://binary-tree-visualizer-3ua2.onrender.com)
 
+<img width="2500" height="1500" alt="image" src="https://github.com/user-attachments/assets/2b4a5347-b10d-4fcc-8f0e-d9d8703fb099" />
+<img width="3420" height="2214" alt="image" src="https://github.com/user-attachments/assets/90703a1d-a52d-46c9-9b79-28223717fd3a" />
+<img width="3420" height="2214" alt="image" src="https://github.com/user-attachments/assets/380552d5-bbc2-4f87-8c82-658a524d3e74" />
+<img width="3420" height="2214" alt="image" src="https://github.com/user-attachments/assets/37ffa09d-24bd-417c-800e-42a150d99e7c" />
+<img width="3420" height="2214" alt="image" src="https://github.com/user-attachments/assets/ca659819-239b-4859-a977-ed52cf6f0a01" />
+
+
+
+
+
+
 ---
 
 ## 📌 Features

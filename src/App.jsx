@@ -8,7 +8,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('landing');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
       
       <motion.div
@@ -17,7 +17,7 @@ function App() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.5 }}
-        className="min-h-screen"
+        className="flex-grow"
       >
         {currentPage === 'landing' ? (
           <LandingPage onGetStarted={() => setCurrentPage('visualizer')} />
@@ -25,6 +25,11 @@ function App() {
           <BinaryTreeVisualizer />
         )}
       </motion.div>
+
+      {/* Footer */}
+      <footer className="text-center py-4 text-sm text-gray-300">
+        Made with <span className="text-red-400">❤️</span> by Nimarjot Kaur
+      </footer>
     </div>
   );
 }

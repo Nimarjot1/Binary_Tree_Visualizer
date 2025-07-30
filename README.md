@@ -57,6 +57,9 @@ npm install
 # Start the server
 npm start
 
+---
+
+
 📚 Educational Use Cases
 This project is ideal for:
 
@@ -65,6 +68,9 @@ This project is ideal for:
 📚 Teaching assistants or instructors explaining binary trees
 
 🔍 Debugging and understanding tree algorithms visually
+
+---
+
 
 🙌 Contributing
 Contributions are welcome!
@@ -80,8 +86,14 @@ Push to the branch: git push origin feature-name
 
 Create a Pull Request
 
+---
+
+
 📃 License
 This project is licensed under the MIT License.
+
+---
+
 
 
 Made with ❤️ by Nimarjot Kaur

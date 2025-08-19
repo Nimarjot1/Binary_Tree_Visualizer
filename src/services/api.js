@@ -1,70 +1,73 @@
-const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
+// frontend/src/api.js
 
-export class ApiService {
-  static async saveTree(name, treeData, algorithm) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/trees`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, treeData, algorithm }),
-      });
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Save tree error:', error);
-      throw new Error(`Failed to save tree: ${error.message}`);
-    }
+// ✅ Fetch all trees
+export async function getTrees() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/trees`);
+    if (!res.ok) throw new Error("Failed to fetch trees");
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching trees:", error);
+    return [];
   }
+}
 
-  static async loadTrees() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/trees`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Load trees error:', error);
-      throw new Error(`Failed to load trees: ${error.message}`);
-    }
+// ✅ Fetch a single tree by ID
+export async function getTree(id) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/trees/${id}`);
+    if (!res.ok) throw new Error("Failed to fetch tree");
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching tree:", error);
+    return null;
   }
+}
 
-  static async loadTree(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/trees/${id}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Load tree error:', error);
-      throw new Error(`Failed to load tree: ${error.message}`);
-    }
+// ✅ Save a new tree
+export async function saveTree(treeData) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/trees`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(treeData),
+    });
+    if (!res.ok) throw new Error("Failed to save tree");
+    return await res.json();
+  } catch (error) {
+    console.error("Error saving tree:", error);
+    return null;
   }
+}
 
-  static async deleteTree(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/trees/${id}`, {
-        method: 'DELETE',
-      });
+// ✅ Update an existing tree
+export async function updateTree(id, treeData) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/trees/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(treeData),
+    });
+    if (!res.ok) throw new Error("Failed to update tree");
+    return await res.json();
+  } catch (error) {
+    console.error("Error updating tree:", error);
+    return null;
+  }
+}
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Delete tree error:', error);
-      throw new Error(`Failed to delete tree: ${error.message}`);
-    }
+// ✅ Delete a tree
+export async function deleteTree(id) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/trees/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete tree");
+    return await res.json();
+  } catch (error) {
+    console.error("Error deleting tree:", error);
+    return null;
   }
 }

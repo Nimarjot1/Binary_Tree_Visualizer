@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, RotateCcw, Save, Upload, Trash2, Search, Plus, Minus, TreePine, Target, Settings } from 'lucide-react';
+import { Play, RotateCcw, Save, TreePine, Target } from 'lucide-react';
 import BinaryTreeNode from './BinaryTreeNode.jsx';
 import ManualInsertionPanel from './ManualInsertionPanel.jsx';
 import { BinaryTree } from '../utils/binaryTreeClass';
@@ -9,90 +9,109 @@ import TreeStats from './TreeStats.jsx';
 
 const BinaryTreeVisualizer = () => {
   const [tree, setTree] = useState(new BinaryTree());
-  const [isPlaying, setIsPlaying] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('insert');
-  const [animationStep, setAnimationStep] = useState(0);
+
   const [savedTrees, setSavedTrees] = useState([]);
   const [treeName, setTreeName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [message, setMessage] = useState('');
+
   const [insertionMode, setInsertionMode] = useState('auto');
   const [showManualInsertPanel, setShowManualInsertPanel] = useState(false);
   const [selectedParent, setSelectedParent] = useState(null);
+
   const [highlightedNodes, setHighlightedNodes] = useState(new Set());
   const [visitedNodes, setVisitedNodes] = useState(new Set());
   const [isAnimating, setIsAnimating] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [animationSteps, setAnimationSteps] = useState([]);
   const [currentTraversalSteps, setCurrentTraversalSteps] = useState([]);
   const [searchMode, setSearchMode] = useState('complete');
 
+  // -------- helpers --------
+  const rebuildFromRoot = (rootObj) => {
+    // Make a fresh BinaryTree instance so React sees a new reference
+    const fresh = new BinaryTree();
+    // Our nodes are plain objects (value/left/right), so JSON clone is fine
+    fresh.root = rootObj ? JSON.parse(JSON.stringify(rootObj)) : null;
+    setTree(fresh);
+  };
+
+  const refreshFromCurrentTree = () => rebuildFromRoot(tree.root);
+
+  // -------- API --------
   useEffect(() => {
-    loadSavedTrees();
+    (async () => {
+      try {
+        const trees = await ApiService.loadTrees();
+        setSavedTrees(Array.isArray(trees) ? trees : []);
+      } catch (error) {
+        console.error('Failed to load trees:', error);
+        setMessage('Failed to connect to server. Save/Load features unavailable.');
+      }
+    })();
   }, []);
 
-  const loadSavedTrees = async () => {
+  const handleSaveTree = async () => {
+    if (!treeName.trim()) {
+      setMessage('Please enter a tree name');
+      return;
+    }
+    if (!tree.root) {
+      setMessage('Cannot save an empty tree');
+      return;
+    }
+
     try {
-      const trees = await ApiService.loadTrees();
-      setSavedTrees(trees);
+      await ApiService.saveTree({
+        name: treeName.trim(),
+        // store plain data
+        treeData: JSON.parse(JSON.stringify(tree.root)),
+        algorithm: selectedAlgorithm,
+        userId: 'anonymous',
+      });
+
+      setMessage('Tree saved successfully!');
+      setShowSaveDialog(false);
+      setTreeName('');
+
+      // reload list (don’t block UI)
+      try {
+        const trees = await ApiService.loadTrees();
+        setSavedTrees(Array.isArray(trees) ? trees : []);
+      } catch (_) {
+        /* ignore */
+      }
     } catch (error) {
-      console.error('Failed to load trees:', error);
-      setMessage('Failed to connect to server. Save/Load features unavailable.');
+      console.error('Save error:', error);
+      const reason = error?.message || 'Unknown error';
+      setMessage(`Failed to save tree: ${reason}`);
     }
   };
 
-  const handleSaveTree = async () => {
-  if (!treeName.trim()) {
-    setMessage('Please enter a tree name');
-    return;
-  }
-
-  if (!tree.root) {
-    setMessage('Cannot save an empty tree');
-    return;
-  }
-
-  try {
-    await ApiService.saveTree({
-  name: treeName,
-  treeData: JSON.parse(JSON.stringify(tree.root)), // ✅ serialize safely
-  algorithm: selectedAlgorithm,
-  userId: "anonymous",
-});
-    setMessage('Tree saved successfully!');
-    setShowSaveDialog(false);
-    setTreeName('');
-    loadSavedTrees();
-  } catch (error) {
-    console.error('Save error:', error);
-    setMessage(`Failed to save tree: ${error.message}`);
-  }
-};
-
-
   const handleLoadTree = (treeData) => {
-    const newTree = new BinaryTree();
-    newTree.root = treeData.treeData;
-    setTree(newTree);
-    setMessage(`Loaded tree: ${treeData.name}`);
+    rebuildFromRoot(treeData?.treeData ?? null);
+    setMessage(`Loaded tree: ${treeData?.name ?? 'Unnamed'}`);
   };
 
   const handleDeleteTree = async (treeId) => {
     try {
       await ApiService.deleteTree(treeId);
       setMessage('Tree deleted successfully!');
-      loadSavedTrees();
+      const trees = await ApiService.loadTrees();
+      setSavedTrees(Array.isArray(trees) ? trees : []);
     } catch (error) {
+      console.error(error);
       setMessage('Failed to delete tree');
     }
   };
 
+  // -------- manual insert --------
   const handleManualInsert = (value, parentValue, side) => {
     const success = tree.insertManual(value, parentValue, side);
     if (success) {
       setMessage(`Inserted ${value} to the ${side} of node ${parentValue}`);
-      setTree(new BinaryTree(tree.root)); // Force re-render
+      refreshFromCurrentTree(); // force re-render
     } else {
       setMessage(`Failed to insert ${value}. Position may be occupied.`);
     }
@@ -105,6 +124,7 @@ const BinaryTreeVisualizer = () => {
     }
   };
 
+  // -------- animations --------
   const animateAlgorithm = async (steps, algorithmName) => {
     setIsAnimating(true);
     setCurrentStep(0);
@@ -114,10 +134,9 @@ const BinaryTreeVisualizer = () => {
 
     for (let i = 0; i < steps.length; i++) {
       setCurrentStep(i);
-      const currentStep = steps[i];
-      setHighlightedNodes(new Set([currentStep.node]));
-      
-      // Build visited nodes progressively based on action
+      const s = steps[i];
+      setHighlightedNodes(new Set([s.node]));
+
       const allVisited = new Set();
       for (let j = 0; j <= i; j++) {
         if (steps[j].action === 'process' || steps[j].action === 'visit') {
@@ -125,16 +144,18 @@ const BinaryTreeVisualizer = () => {
         }
       }
       setVisitedNodes(allVisited);
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 1s between steps
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
     const processedNodes = steps
-      .filter(step => step.action === 'process')
-      .map(step => step.node);
+      .filter((step) => step.action === 'process')
+      .map((step) => step.node);
+
     setMessage(`${algorithmName} completed: ${processedNodes.join(' → ')}`);
     setIsAnimating(false);
-    
+
     setTimeout(() => {
       setHighlightedNodes(new Set());
       setVisitedNodes(new Set());
@@ -147,64 +168,71 @@ const BinaryTreeVisualizer = () => {
     setVisitedNodes(new Set());
 
     for (let i = 0; i < steps.length; i++) {
-      const currentStep = steps[i];
-      setHighlightedNodes(new Set([currentStep.node]));
-      
+      const s = steps[i];
+      setHighlightedNodes(new Set([s.node]));
+
       const visitedSoFar = new Set();
-      for (let j = 0; j <= i; j++) {
-        visitedSoFar.add(steps[j].node);
-      }
+      for (let j = 0; j <= i; j++) visitedSoFar.add(steps[j].node);
       setVisitedNodes(visitedSoFar);
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
     setMessage(found ? `Found ${searchValue} at node ${searchValue}` : `${searchValue} not found in tree`);
     setIsAnimating(false);
-    
+
     setTimeout(() => {
       setHighlightedNodes(new Set());
       setVisitedNodes(new Set());
     }, 2000);
   };
 
+  // -------- execute --------
   const executeAlgorithm = useCallback(() => {
     if (isAnimating) {
       setMessage('Animation in progress. Please wait...');
       return;
     }
 
-    const value = parseInt(inputValue);
+    const value = Number(inputValue);
     const algorithmsWithoutInput = ['clear', 'inorder', 'preorder', 'postorder', 'dfs', 'bfs'];
-    if (isNaN(value) && !algorithmsWithoutInput.includes(selectedAlgorithm)) {
+
+    if (!algorithmsWithoutInput.includes(selectedAlgorithm) && !Number.isFinite(value)) {
       setMessage('Please enter a valid number');
       return;
     }
 
     let result = '';
+
     switch (selectedAlgorithm) {
-      case 'insert':
+      case 'insert': {
         if (insertionMode === 'auto') {
           tree.insert(value);
           result = `Inserted ${value}`;
+          refreshFromCurrentTree();
         } else {
           setShowManualInsertPanel(true);
           return;
         }
         break;
-      case 'delete':
+      }
+
+      case 'delete': {
         const nodeExists = tree.findNode(tree.root, value);
         if (nodeExists) {
           tree.delete(value);
           result = `Deleted ${value}`;
-          setTree(new BinaryTree(tree.root)); // Force re-render with updated tree
+          refreshFromCurrentTree();
         } else {
           setMessage(`Node ${value} not found in tree`);
           setInputValue('');
           return;
         }
         break;
-      case 'search':
+      }
+
+      case 'search': {
         if (!tree.root) {
           setMessage('Tree is empty. Add some nodes first.');
           return;
@@ -213,7 +241,9 @@ const BinaryTreeVisualizer = () => {
         animateSearch(searchResult.steps, searchResult.found, value);
         setInputValue('');
         return;
-      case 'inorder':
+      }
+
+      case 'inorder': {
         if (!tree.root) {
           setMessage('Tree is empty. Add some nodes first.');
           return;
@@ -222,7 +252,9 @@ const BinaryTreeVisualizer = () => {
         animateAlgorithm(inorderResult.steps, 'In-order traversal');
         setInputValue('');
         return;
-      case 'preorder':
+      }
+
+      case 'preorder': {
         if (!tree.root) {
           setMessage('Tree is empty. Add some nodes first.');
           return;
@@ -231,7 +263,9 @@ const BinaryTreeVisualizer = () => {
         animateAlgorithm(preorderResult.steps, 'Pre-order traversal');
         setInputValue('');
         return;
-      case 'postorder':
+      }
+
+      case 'postorder': {
         if (!tree.root) {
           setMessage('Tree is empty. Add some nodes first.');
           return;
@@ -240,7 +274,9 @@ const BinaryTreeVisualizer = () => {
         animateAlgorithm(postorderResult.steps, 'Post-order traversal');
         setInputValue('');
         return;
-      case 'dfs':
+      }
+
+      case 'dfs': {
         if (!tree.root) {
           setMessage('Tree is empty. Add some nodes first.');
           return;
@@ -249,7 +285,9 @@ const BinaryTreeVisualizer = () => {
         animateAlgorithm(dfsResult.steps, 'DFS traversal');
         setInputValue('');
         return;
-      case 'bfs':
+      }
+
+      case 'bfs': {
         if (!tree.root) {
           setMessage('Tree is empty. Add some nodes first.');
           return;
@@ -258,35 +296,40 @@ const BinaryTreeVisualizer = () => {
         animateAlgorithm(bfsResult.steps, 'BFS traversal');
         setInputValue('');
         return;
-      case 'clear':
+      }
+
+      case 'clear': {
         setTree(new BinaryTree());
         result = 'Tree cleared';
         break;
+      }
+
+      default:
+        break;
     }
-    
+
     setMessage(result);
     setInputValue('');
-    setTree(new BinaryTree(tree.root)); // Force re-render
-  }, [tree, inputValue, selectedAlgorithm, insertionMode, isAnimating, searchMode]);
+  }, [isAnimating, inputValue, insertionMode, searchMode, selectedAlgorithm, tree]);
 
+  // -------- stats --------
   const treeStats = tree.getTreeStats();
 
+  // -------- render tree --------
   const renderTree = (node, x, y, level) => {
     if (!node) return null;
 
-    // Dynamic spacing that ensures nodes stay within canvas bounds
     const baseSpacing = Math.max(80, 300 / Math.pow(2, level));
     const spacing = baseSpacing;
     const leftX = x - spacing;
     const rightX = x + spacing;
     const childY = y + 100;
 
-    // Ensure nodes don't go outside canvas bounds
-    const minX = 60; // Minimum X position
-    const maxX = 740; // Maximum X position for 800px canvas
+    const minX = 60;
+    const maxX = 940; // widen since viewBox width is 1000
     const adjustedLeftX = Math.max(minX, leftX);
     const adjustedRightX = Math.min(maxX, rightX);
-    
+
     return (
       <g key={`${node.value}-${x}-${y}`}>
         {node.left && (
@@ -309,7 +352,7 @@ const BinaryTreeVisualizer = () => {
             strokeWidth="2"
           />
         )}
-        
+
         <BinaryTreeNode
           value={node.value}
           x={x}
@@ -319,18 +362,19 @@ const BinaryTreeVisualizer = () => {
           isSelectable={insertionMode === 'manual' && showManualInsertPanel}
           onNodeClick={handleNodeClick}
         />
-        
+
         {node.left && renderTree(node.left, adjustedLeftX, childY, level + 1)}
         {node.right && renderTree(node.right, adjustedRightX, childY, level + 1)}
       </g>
     );
   };
 
+  // -------- component --------
   return (
     <div className="pt-20 min-h-screen">
       <div className="container mx-auto px-6 py-8">
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Control Panel - Fixed Position */}
+          {/* Control Panel */}
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-28 space-y-6">
               <motion.div
@@ -339,7 +383,7 @@ const BinaryTreeVisualizer = () => {
                 className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10"
               >
                 <h2 className="text-xl font-bold text-white mb-6">Controls</h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -428,26 +472,26 @@ const BinaryTreeVisualizer = () => {
                       </div>
                     </div>
                   )}
-                  
-                  {selectedAlgorithm !== 'clear' && 
-                   selectedAlgorithm !== 'inorder' && 
-                   selectedAlgorithm !== 'preorder' && 
-                   selectedAlgorithm !== 'postorder' && 
-                   selectedAlgorithm !== 'dfs' && 
-                   selectedAlgorithm !== 'bfs' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Value
-                      </label>
-                      <input
-                        type="number"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
-                        placeholder="Enter number"
-                      />
-                    </div>
-                  )}
+
+                  {selectedAlgorithm !== 'clear' &&
+                    selectedAlgorithm !== 'inorder' &&
+                    selectedAlgorithm !== 'preorder' &&
+                    selectedAlgorithm !== 'postorder' &&
+                    selectedAlgorithm !== 'dfs' &&
+                    selectedAlgorithm !== 'bfs' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Value
+                        </label>
+                        <input
+                          type="number"
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white"
+                          placeholder="Enter number"
+                        />
+                      </div>
+                    )}
 
                   <motion.button
                     onClick={executeAlgorithm}
@@ -467,7 +511,7 @@ const BinaryTreeVisualizer = () => {
                         <motion.div
                           className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
                           animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                         />
                         <span>Animating...</span>
                       </>
@@ -494,7 +538,7 @@ const BinaryTreeVisualizer = () => {
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
                         <motion.div
-                          className="bg-emerald-500 h-2 rounded-full"
+                          className="h-2 rounded-full bg-emerald-500"
                           initial={{ width: 0 }}
                           animate={{ width: `${((currentStep + 1) / currentTraversalSteps.length) * 100}%` }}
                           transition={{ duration: 0.3 }}
@@ -502,7 +546,8 @@ const BinaryTreeVisualizer = () => {
                       </div>
                       {currentTraversalSteps[currentStep] && (
                         <p className="text-xs text-gray-300 mt-2">
-                          Current: Node {currentTraversalSteps[currentStep].node} ({currentTraversalSteps[currentStep].action})
+                          Current: Node {currentTraversalSteps[currentStep].node} (
+                          {currentTraversalSteps[currentStep].action})
                         </p>
                       )}
                     </div>
@@ -518,7 +563,7 @@ const BinaryTreeVisualizer = () => {
                       <Save className="w-4 h-4" />
                       <span>Save</span>
                     </motion.button>
-                    
+
                     <motion.button
                       onClick={() => setTree(new BinaryTree())}
                       className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-3 rounded-lg transition-all flex items-center justify-center space-x-1"
@@ -531,10 +576,10 @@ const BinaryTreeVisualizer = () => {
                   </div>
                 </div>
               </motion.div>
-              
+
               {/* Tree Statistics */}
               <TreeStats stats={treeStats} />
-              
+
               {/* Saved Trees */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -552,9 +597,7 @@ const BinaryTreeVisualizer = () => {
                         className="bg-white/5 rounded-lg p-3 border border-white/10"
                       >
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-white truncate">
-                            {savedTree.name}
-                          </span>
+                          <span className="text-sm text-white truncate">{savedTree.name}</span>
                           <div className="flex space-x-1">
                             <button
                               onClick={() => handleLoadTree(savedTree)}
@@ -600,12 +643,7 @@ const BinaryTreeVisualizer = () => {
 
               <div className="bg-slate-900/50 rounded-xl p-4 min-h-96">
                 {tree.root ? (
-                  <svg
-                    width="100%"
-                    height="800"
-                    viewBox="0 0 1000 800"
-                    className="overflow-visible"
-                  >
+                  <svg width="100%" height="800" viewBox="0 0 1000 800" className="overflow-visible">
                     {renderTree(tree.root, 500, 60, 0)}
                   </svg>
                 ) : (

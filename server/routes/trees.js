@@ -31,36 +31,43 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create new tree
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    let { name, treeData, algorithm, userId } = req.body;
+    let { name, treeData, algorithm, userId = 'anonymous' } = req.body;
 
-    // Default userId if not provided
-    if (!userId) userId = "anonymous";
-
-    // ✅ Minimal fallback: allow saving with just a `name`
-    if (!name) {
-      return res.status(400).json({
-        error: "Missing required field: name",
-      });
+    // If frontend sends just a raw string instead of JSON
+    if (typeof req.body === 'string') {
+      name = req.body;
+      treeData = {};
+      algorithm = 'insert';
+      userId = 'anonymous';
     }
 
-    if (!algorithm) algorithm = "insert";
-    if (!treeData) treeData = {};
+    // If frontend sends only { name: "MyTree" }
+    if (name && !treeData && !algorithm) {
+      treeData = {};
+      algorithm = 'insert';
+      userId = 'anonymous';
+    }
+
+    if (!name) {
+      return res.status(400).json({ error: 'Tree name is required' });
+    }
 
     const tree = await TreeModel.create({
       name,
       treeData,
       algorithm,
-      userId,
+      userId
     });
 
     res.status(201).json(tree);
   } catch (error) {
-    console.error("Error creating tree:", error);
+    console.error('Error creating tree:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // Update tree
 router.put("/:id", async (req, res) => {

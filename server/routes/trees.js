@@ -1,3 +1,5 @@
+// routes/trees.js
+
 const express = require('express');
 const TreeModel = require('../models/Tree');
 const router = express.Router();
@@ -31,21 +33,30 @@ router.get('/:id', async (req, res) => {
 // Create new tree
 router.post('/', async (req, res) => {
   try {
-    const { name, treeData, algorithm, userId = 'anonymous' } = req.body;
-    
+    let { name, treeData, algorithm, userId = 'anonymous' } = req.body;
+
+    // ✅ Handle case where frontend sends just a raw string like "bbb"
+    if (typeof req.body === 'string') {
+      name = req.body;
+      treeData = {};
+      algorithm = 'insert';
+      userId = 'anonymous';
+    }
+
+    // ✅ Validate fields
     if (!name || !treeData || !algorithm) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: name, treeData, algorithm' 
+      return res.status(400).json({
+        error: 'Missing required fields: name, treeData, algorithm'
       });
     }
-    
+
     const tree = await TreeModel.create({
       name,
       treeData,
       algorithm,
       userId
     });
-    
+
     res.status(201).json(tree);
   } catch (error) {
     console.error('Error creating tree:', error);
@@ -58,11 +69,11 @@ router.put('/:id', async (req, res) => {
   try {
     const { name, treeData, algorithm } = req.body;
     const updateData = {};
-    
+
     if (name) updateData.name = name;
     if (treeData) updateData.treeData = treeData;
     if (algorithm) updateData.algorithm = algorithm;
-    
+
     const tree = await TreeModel.update(req.params.id, updateData);
     res.json(tree);
   } catch (error) {

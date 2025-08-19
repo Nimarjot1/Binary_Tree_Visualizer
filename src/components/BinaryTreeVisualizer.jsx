@@ -55,11 +55,11 @@ const BinaryTreeVisualizer = () => {
 
   try {
     await ApiService.saveTree({
-      name: treeName,
-      treeData: tree.root,
-      algorithm: selectedAlgorithm,
-      userId: "anonymous", // or real user later
-    });
+  name: treeName,
+  treeData: JSON.parse(JSON.stringify(tree.root)), // ✅ serialize safely
+  algorithm: selectedAlgorithm,
+  userId: "anonymous",
+});
     setMessage('Tree saved successfully!');
     setShowSaveDialog(false);
     setTreeName('');

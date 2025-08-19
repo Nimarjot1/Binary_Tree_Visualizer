@@ -43,27 +43,33 @@ const BinaryTreeVisualizer = () => {
   };
 
   const handleSaveTree = async () => {
-    if (!treeName.trim()) {
-      setMessage('Please enter a tree name');
-      return;
-    }
-    
-    if (!tree.root) {
-      setMessage('Cannot save an empty tree');
-      return;
-    }
-    
-    try {
-      await ApiService.saveTree(treeName, tree.root, selectedAlgorithm);
-      setMessage('Tree saved successfully!');
-      setShowSaveDialog(false);
-      setTreeName('');
-      loadSavedTrees();
-    } catch (error) {
-      console.error('Save error:', error);
-      setMessage(`Failed to save tree: ${error.message}`);
-    }
-  };
+  if (!treeName.trim()) {
+    setMessage('Please enter a tree name');
+    return;
+  }
+
+  if (!tree.root) {
+    setMessage('Cannot save an empty tree');
+    return;
+  }
+
+  try {
+    await ApiService.saveTree({
+      name: treeName,
+      treeData: tree.root,
+      algorithm: selectedAlgorithm,
+      userId: "anonymous", // or real user later
+    });
+    setMessage('Tree saved successfully!');
+    setShowSaveDialog(false);
+    setTreeName('');
+    loadSavedTrees();
+  } catch (error) {
+    console.error('Save error:', error);
+    setMessage(`Failed to save tree: ${error.message}`);
+  }
+};
+
 
   const handleLoadTree = (treeData) => {
     const newTree = new BinaryTree();

@@ -65,29 +65,21 @@ const BinaryTreeVisualizer = () => {
     try {
       await ApiService.saveTree({
         name: treeName.trim(),
-        // store plain data
         treeData: JSON.parse(JSON.stringify(tree.root)),
         algorithm: selectedAlgorithm,
         userId: 'anonymous',
       });
 
-      setMessage('Tree saved successfully!');
+      setMessage('✅ Tree saved successfully!');
       setShowSaveDialog(false);
       setTreeName('');
-
-      // reload list (don’t block UI)
-      try {
-        const trees = await ApiService.loadTrees();
-        setSavedTrees(Array.isArray(trees) ? trees : []);
-      } catch (_) {
-        /* ignore */
-      }
+      loadTrees();
     } catch (error) {
       console.error('Save error:', error);
-      const reason = error?.message || 'Unknown error';
-      setMessage(`Failed to save tree: ${reason}`);
+      setMessage(`❌ Failed to save tree: ${error?.message || 'Unknown error'}`);
     }
   };
+
 
   const handleLoadTree = (treeData) => {
     rebuildFromRoot(treeData?.treeData ?? null);

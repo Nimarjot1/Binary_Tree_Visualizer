@@ -45,6 +45,7 @@ async function deleteTree(id) {
 
 // ▼ Export all functions wrapped under ApiService
 export const ApiService = {
+  loadTrees: getTrees,
   getTrees,
   getTree,
   saveTree,

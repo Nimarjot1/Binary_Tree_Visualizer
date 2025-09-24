@@ -13,7 +13,7 @@ class Database {
     const uri = process.env.MONGODB_URI;
     if (!uri) throw new Error('MONGODB_URI is not set in environment variables');
 
-    this.client = new MongoClient(uri, { useUnifiedTopology: true });
+    this.client = new MongoClient(uri); // ✅ removed useUnifiedTopology
     await this.client.connect();
     this.db = this.client.db(process.env.DB_NAME || 'binary-tree-visualizer');
 

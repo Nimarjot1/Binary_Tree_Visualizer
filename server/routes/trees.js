@@ -5,80 +5,61 @@ const router = express.Router();
 // Get all trees
 router.get('/', async (req, res) => {
   try {
-    const userId = req.query.userId || 'anonymous';
-    const trees = await TreeModel.findAll(userId);
+    const trees = await TreeModel.findAll();
     res.json(trees);
   } catch (error) {
-    console.error('Error fetching trees:', error);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get single tree
+// Get single tree by ID
 router.get('/:id', async (req, res) => {
   try {
     const tree = await TreeModel.findById(req.params.id);
-    if (!tree) {
-      return res.status(404).json({ error: 'Tree not found' });
-    }
+    if (!tree) return res.status(404).json({ error: 'Tree not found' });
     res.json(tree);
   } catch (error) {
-    console.error('Error fetching tree:', error);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Create new tree
+// Create a new tree
 router.post('/', async (req, res) => {
   try {
-    const { name, treeData, algorithm, userId = 'anonymous' } = req.body;
-    
+    const { name, treeData, algorithm } = req.body;
     if (!name || !treeData || !algorithm) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: name, treeData, algorithm' 
-      });
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-    
-    const tree = await TreeModel.create({
-      name,
-      treeData,
-      algorithm,
-      userId
-    });
-    
+    const tree = await TreeModel.create({ name, treeData, algorithm });
     res.status(201).json(tree);
   } catch (error) {
-    console.error('Error creating tree:', error);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Update tree
+// Update a tree
 router.put('/:id', async (req, res) => {
   try {
-    const { name, treeData, algorithm } = req.body;
-    const updateData = {};
-    
-    if (name) updateData.name = name;
-    if (treeData) updateData.treeData = treeData;
-    if (algorithm) updateData.algorithm = algorithm;
-    
+    const updateData = req.body;
     const tree = await TreeModel.update(req.params.id, updateData);
     res.json(tree);
   } catch (error) {
-    console.error('Error updating tree:', error);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Delete tree
+// Delete a tree
 router.delete('/:id', async (req, res) => {
   try {
     await TreeModel.delete(req.params.id);
     res.json({ message: 'Tree deleted successfully' });
   } catch (error) {
-    console.error('Error deleting tree:', error);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

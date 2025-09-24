@@ -8,6 +8,7 @@ class Database {
     this.db = null;
   }
 
+  // Connect to MongoDB
   async connect() {
     if (this.db) return this.db; // already connected
 
@@ -22,11 +23,13 @@ class Database {
     return this.db;
   }
 
+  // Get a collection
   getCollection(name) {
     if (!this.db) throw new Error("Database not connected. Call connect() first.");
     return this.db.collection(name);
   }
 
+  // Disconnect from MongoDB
   async disconnect() {
     if (this.client) {
       await this.client.close();

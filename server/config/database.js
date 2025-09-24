@@ -11,10 +11,13 @@ class Database {
     try {
       const uri = process.env.MONGODB_URI;
 
-      // No need to pass deprecated options like useNewUrlParser or useUnifiedTopology
-      this.client = new MongoClient(uri); // Clean, modern usage
+      if (!uri) {
+        throw new Error("❌ MONGODB_URI not found in .env file");
+      }
 
+      this.client = new MongoClient(uri);
       await this.client.connect();
+
       this.db = this.client.db('binary-tree-visualizer');
 
       console.log('✅ Connected to MongoDB Atlas');

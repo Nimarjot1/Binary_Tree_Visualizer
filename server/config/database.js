@@ -1,3 +1,4 @@
+// config/database.js
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
@@ -8,24 +9,22 @@ class Database {
   }
 
   async connect() {
-    try {
-      const uri = process.env.MONGODB_URI;
+    if (this.db) return this.db; // already connected
 
-      if (!uri) {
-        throw new Error("❌ MONGODB_URI not found in .env file");
-      }
+    const uri = process.env.MONGODB_URI;
+    if (!uri) throw new Error("❌ MONGODB_URI not found in .env");
 
-      this.client = new MongoClient(uri);
-      await this.client.connect();
+    this.client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    await this.client.connect();
 
-      this.db = this.client.db('binary-tree-visualizer');
+    this.db = this.client.db('binary-tree-visualizer');
+    console.log('✅ Connected to MongoDB Atlas');
+    return this.db;
+  }
 
-      console.log('✅ Connected to MongoDB Atlas');
-      return this.db;
-    } catch (error) {
-      console.error('❌ MongoDB connection error:', error);
-      throw error;
-    }
+  getCollection(name) {
+    if (!this.db) throw new Error("Database not connected. Call connect() first.");
+    return this.db.collection(name);
   }
 
   async disconnect() {
@@ -33,17 +32,6 @@ class Database {
       await this.client.close();
       console.log('📴 Disconnected from MongoDB');
     }
-  }
-
-  getDb() {
-    if (!this.db) {
-      throw new Error('Database not connected. Call connect() first.');
-    }
-    return this.db;
-  }
-
-  getCollection(name) {
-    return this.getDb().collection(name);
   }
 }
 

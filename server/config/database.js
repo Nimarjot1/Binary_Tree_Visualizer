@@ -10,14 +10,20 @@ class Database {
   async connect() {
     try {
       const uri = process.env.MONGODB_URI;
-      if (!uri) throw new Error('MONGODB_URI is not defined in .env');
+      if (!uri) {
+        throw new Error('❌ MONGODB_URI is not set in environment variables');
+      }
 
-      this.client = new MongoClient(uri); // Modern usage
+      if (this.db) {
+        console.log('⚡ Using existing MongoDB connection');
+        return this.db;
+      }
+
+      this.client = new MongoClient(uri);
       await this.client.connect();
-
       this.db = this.client.db('binary-tree-visualizer');
-      console.log('✅ Connected to MongoDB Atlas');
 
+      console.log('✅ Connected to MongoDB Atlas');
       return this.db;
     } catch (error) {
       console.error('❌ MongoDB connection error:', error);
@@ -28,6 +34,8 @@ class Database {
   async disconnect() {
     if (this.client) {
       await this.client.close();
+      this.client = null;
+      this.db = null;
       console.log('📴 Disconnected from MongoDB');
     }
   }

@@ -8,16 +8,27 @@ class Database {
   }
 
   async connect() {
-    if (this.db) return this.db;
+    try {
+      const uri = process.env.MONGODB_URI;
+      if (!uri) {
+        throw new Error('❌ MONGODB_URI is not set in environment variables');
+      }
 
-    const uri = process.env.MONGODB_URI;
-    if (!uri) throw new Error('MONGODB_URI is not set in .env');
+      if (this.db) {
+        console.log('⚡ Using existing MongoDB connection');
+        return this.db;
+      }
 
-    this.client = new MongoClient(uri);
-    await this.client.connect();
-    this.db = this.client.db('binary-tree-visualizer');
-    console.log('Connected to MongoDB');
-    return this.db;
+      this.client = new MongoClient(uri);
+      await this.client.connect();
+      this.db = this.client.db('binary-tree-visualizer');
+
+      console.log('✅ Connected to MongoDB Atlas');
+      return this.db;
+    } catch (error) {
+      console.error('❌ MongoDB connection error:', error);
+      throw error;
+    }
   }
 
   async disconnect() {
@@ -25,12 +36,14 @@ class Database {
       await this.client.close();
       this.client = null;
       this.db = null;
-      console.log('Disconnected from MongoDB');
+      console.log('📴 Disconnected from MongoDB');
     }
   }
 
   getDb() {
-    if (!this.db) throw new Error('Database not connected');
+    if (!this.db) {
+      throw new Error('Database not connected. Call connect() first.');
+    }
     return this.db;
   }
 

@@ -1,37 +1,34 @@
-// index.js
+// routes/trees.js
 const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+const { ObjectId } = require('mongodb');
+const db = require('../config/database');
 
-const db = require('./config/database'); // your database config
-const treeRoutes = require('./routes/trees');
+const router = express.Router();
 
-const app = express();
-const PORT = process.env.PORT || 5001;
+// 📌 CREATE: Save a new tree (only name allowed from client)
+router.post('/', async (req, res) => {
+  try {
+    const { name } = req.body;
 
-// Middleware
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type"]
-}));
-app.use(express.json());
+    // Validate tree name
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Tree name must be a non-empty string' });
+    }
 
-// Routes
-app.use('/trees', treeRoutes);
+    const collection = db.getCollection('trees');
 
-// Root route
-app.get('/', (req, res) => {
-  res.send('🌳 Tree API is running!');
+    // Server will add empty nodes by default
+    const result = await collection.insertOne({
+      name: name.trim(),
+      nodes: [],           // ✅ initialize empty array
+      createdAt: new Date()
+    });
+
+    res.status(201).json({ message: 'Tree saved successfully', id: result.insertedId });
+  } catch (err) {
+    console.error('❌ Error saving tree:', err);
+    res.status(500).json({ error: 'Failed to save tree' });
+  }
 });
 
-// Connect to MongoDB and start server
-db.connectToDb()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  })
-  .catch(err => {
-    console.error('❌ Failed to connect to DB:', err);
-  });
+module.exports = router;

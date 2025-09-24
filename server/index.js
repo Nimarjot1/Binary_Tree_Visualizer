@@ -9,18 +9,19 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type"]
+  origin: [
+    process.env.FRONTEND_URL || "http://localhost:5173"
+  ],
+  credentials: true
 }));
 app.use(express.json());
 
 // Connect to MongoDB
 database.connect().catch(console.error);
 
-// Root info endpoint
+// Root route
 app.get('/', (req, res) => {
-  res.json({
+  res.json({ 
     message: 'Binary Tree Visualizer API Server with MongoDB Atlas',
     version: '1.0.0',
     database: 'MongoDB Atlas',
@@ -44,7 +45,6 @@ process.on('SIGINT', () => {
   });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 API endpoints available at http://localhost:${PORT}/api`);

@@ -1,100 +1,91 @@
-// routes/trees.js
+const express = require('express');
+const { ObjectId } = require('mongodb');
+const db = require('../config/database');
 
-const express = require("express");
-const TreeModel = require("../models/Tree");
 const router = express.Router();
 
-// Get all trees
-router.get("/", async (req, res) => {
-  try {
-    const userId = req.query.userId || "anonymous";
-    const trees = await TreeModel.findAll(userId);
-    res.json(trees);
-  } catch (error) {
-    console.error("Error fetching trees:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get single tree
-router.get("/:id", async (req, res) => {
-  try {
-    const tree = await TreeModel.findById(req.params.id);
-    if (!tree) {
-      return res.status(404).json({ error: "Tree not found" });
-    }
-    res.json(tree);
-  } catch (error) {
-    console.error("Error fetching tree:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Create new tree
+// 📌 Save a new tree
 router.post('/', async (req, res) => {
   try {
-    let { name, treeData, algorithm, userId = 'anonymous' } = req.body;
+    const { name, nodes } = req.body;
 
-    // If frontend sends just a raw string instead of JSON
-    if (typeof req.body === 'string') {
-      name = req.body;
-      treeData = {};
-      algorithm = 'insert';
-      userId = 'anonymous';
+    if (!name || !nodes) {
+      return res.status(400).json({ error: 'Tree name and nodes are required' });
     }
 
-    // If frontend sends only { name: "MyTree" }
-    if (name && !treeData && !algorithm) {
-      treeData = {};
-      algorithm = 'insert';
-      userId = 'anonymous';
-    }
-
-    if (!name) {
-      return res.status(400).json({ error: 'Tree name is required' });
-    }
-
-    const tree = await TreeModel.create({
-      name,
-      treeData,
-      algorithm,
-      userId
+    const collection = db.getCollection('trees');
+    const result = await collection.insertOne({
+      name: String(name),   // ensure string
+      nodes: nodes,         // store tree structure (array or object)
+      createdAt: new Date()
     });
 
-    res.status(201).json(tree);
-  } catch (error) {
-    console.error('Error creating tree:', error);
-    res.status(500).json({ error: error.message });
+    res.status(201).json({ message: 'Tree saved successfully', id: result.insertedId });
+  } catch (err) {
+    console.error('❌ Error saving tree:', err);
+    res.status(500).json({ error: 'Failed to save tree' });
   }
 });
 
-
-// Update tree
-router.put("/:id", async (req, res) => {
+// 📌 Get all trees
+router.get('/', async (req, res) => {
   try {
-    const { name, treeData, algorithm } = req.body;
-    const updateData = {};
+    const collection = db.getCollection('trees');
+    const trees = await collection.find().toArray();
+    res.json(trees);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch trees' });
+  }
+});
 
-    if (name) updateData.name = name;
-    if (treeData) updateData.treeData = treeData;
-    if (algorithm) updateData.algorithm = algorithm;
+// 📌 Get a specific tree by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const collection = db.getCollection('trees');
+    const tree = await collection.findOne({ _id: new ObjectId(req.params.id) });
 
-    const tree = await TreeModel.update(req.params.id, updateData);
+    if (!tree) return res.status(404).json({ error: 'Tree not found' });
+
     res.json(tree);
-  } catch (error) {
-    console.error("Error updating tree:", error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch tree' });
   }
 });
 
-// Delete tree
-router.delete("/:id", async (req, res) => {
+// 📌 Update a tree
+router.put('/:id', async (req, res) => {
   try {
-    await TreeModel.delete(req.params.id);
-    res.json({ message: "Tree deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting tree:", error);
-    res.status(500).json({ error: error.message });
+    const { name, nodes } = req.body;
+    const collection = db.getCollection('trees');
+
+    const result = await collection.updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: { name: String(name), nodes, updatedAt: new Date() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Tree not found' });
+    }
+
+    res.json({ message: 'Tree updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update tree' });
+  }
+});
+
+// 📌 Delete a tree
+router.delete('/:id', async (req, res) => {
+  try {
+    const collection = db.getCollection('trees');
+    const result = await collection.deleteOne({ _id: new ObjectId(req.params.id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Tree not found' });
+    }
+
+    res.json({ message: 'Tree deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete tree' });
   }
 });
 

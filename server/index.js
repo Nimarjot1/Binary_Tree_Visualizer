@@ -1,8 +1,10 @@
+// index.js
 const express = require('express');
 const cors = require('cors');
-const database = require('./config/database'); // ✅
-const treeRoutes = require('./routes/trees');
 require('dotenv').config();
+
+const db = require('./config/database'); // your database config
+const treeRoutes = require('./routes/trees');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -15,36 +17,21 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Connect to MongoDB
-database.connect().catch(console.error);
+// Routes
+app.use('/trees', treeRoutes);
 
-// Root info
+// Root route
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Binary Tree Visualizer API Server with MongoDB Atlas',
-    version: '1.0.0',
-    database: 'MongoDB Atlas',
-    endpoints: {
-      'GET /api/trees': 'Get all saved trees',
-      'POST /api/trees': 'Save a new tree',
-      'GET /api/trees/:id': 'Get a specific tree',
-      'PUT /api/trees/:id': 'Update a specific tree',
-      'DELETE /api/trees/:id': 'Delete a specific tree'
-    }
+  res.send('🌳 Tree API is running!');
+});
+
+// Connect to MongoDB and start server
+db.connectToDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Failed to connect to DB:', err);
   });
-});
-
-// API Routes
-app.use('/api/trees', treeRoutes);
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-  database.disconnect().then(() => {
-    process.exit(0);
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 API endpoints available at http://localhost:${PORT}/api`);
-});

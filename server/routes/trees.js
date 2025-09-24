@@ -18,9 +18,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const tree = await TreeModel.findById(req.params.id);
-    if (!tree) {
-      return res.status(404).json({ error: 'Tree not found' });
-    }
+    if (!tree) return res.status(404).json({ error: 'Tree not found' });
     res.json(tree);
   } catch (error) {
     console.error('Error fetching tree:', error);
@@ -32,20 +30,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, treeData, algorithm, userId = 'anonymous' } = req.body;
-    
-    if (!name || !treeData || !algorithm) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: name, treeData, algorithm' 
-      });
-    }
-    
-    const tree = await TreeModel.create({
-      name,
-      treeData,
-      algorithm,
-      userId
-    });
-    
+    if (!name || !treeData || !algorithm)
+      return res.status(400).json({ error: 'Missing required fields' });
+
+    const tree = await TreeModel.create({ name, treeData, algorithm, userId });
     res.status(201).json(tree);
   } catch (error) {
     console.error('Error creating tree:', error);
@@ -56,13 +44,7 @@ router.post('/', async (req, res) => {
 // Update tree
 router.put('/:id', async (req, res) => {
   try {
-    const { name, treeData, algorithm } = req.body;
-    const updateData = {};
-    
-    if (name) updateData.name = name;
-    if (treeData) updateData.treeData = treeData;
-    if (algorithm) updateData.algorithm = algorithm;
-    
+    const updateData = req.body;
     const tree = await TreeModel.update(req.params.id, updateData);
     res.json(tree);
   } catch (error) {

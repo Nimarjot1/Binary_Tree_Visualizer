@@ -9,17 +9,16 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || "http://localhost:5173"
-  ],
-  credentials: true
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type"]
 }));
 app.use(express.json());
 
 // Connect to MongoDB
 database.connect().catch(console.error);
 
-// Root route
+// Root info
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Binary Tree Visualizer API Server with MongoDB Atlas',

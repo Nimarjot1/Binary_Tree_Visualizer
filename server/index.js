@@ -1,1 +1,51 @@
-const express = require('express'); const cors = require('cors'); const database = require('./config/database'); const treeRoutes = require('./routes/trees'); require('dotenv').config(); const app = express(); const PORT = process.env.PORT || 5001; // Middleware app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"], allowedHeaders: ["Content-Type"] })); app.use(express.json()); // Connect to MongoDB database.connect().catch(console.error); // Root info app.get('/', (req, res) => { res.json({ message: 'Binary Tree Visualizer API Server with MongoDB Atlas', version: '1.0.0', database: 'MongoDB Atlas', endpoints: { 'GET /api/trees': 'Get all saved trees', 'POST /api/trees': 'Save a new tree', 'GET /api/trees/:id': 'Get a specific tree', 'PUT /api/trees/:id': 'Update a specific tree', 'DELETE /api/trees/:id': 'Delete a specific tree' } }); }); // API Routes app.use('/api/trees', treeRoutes); // Graceful shutdown process.on('SIGINT', () => { database.disconnect().then(() => { process.exit(0); }); }); app.listen(PORT, () => { console.log(🚀 Server running on port ${PORT}); console.log(📊 API endpoints available at http://localhost:${PORT}/api); }); index.js , const { MongoClient } = require('mongodb'); require('dotenv').config(); class Database { constructor() { this.client = null; this.db = null; } async connect() { try { const uri = process.env.MONGODB_URI; // No need to pass deprecated options like useNewUrlParser or useUnifiedTopology this.client = new MongoClient(uri); // Clean, modern usage await this.client.connect(); this.db = this.client.db('binary-tree-visualizer'); console.log('✅ Connected to MongoDB Atlas'); return this.db; } catch (error) { console.error('❌ MongoDB connection error:', error); throw error; } } async disconnect() { if (this.client) { await this.client.close(); console.log('📴 Disconnected from MongoDB'); } } getDb() { if (!this.db) { throw new Error('Database not connected. Call connect() first.'); } return this.db; } getCollection(name) { return this.getDb().collection(name); } } module.exports = new Database();
+const express = require('express');
+const cors = require('cors');
+const database = require('./config/database');
+const treeRoutes = require('./routes/trees');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 5001;
+
+// Middleware
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type"]
+}));
+app.use(express.json());
+
+// Connect to MongoDB
+database.connect().catch(console.error);
+
+// Root info endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Binary Tree Visualizer API Server with MongoDB Atlas',
+    version: '1.0.0',
+    database: 'MongoDB Atlas',
+    endpoints: {
+      'GET /api/trees': 'Get all saved trees',
+      'POST /api/trees': 'Save a new tree',
+      'GET /api/trees/:id': 'Get a specific tree',
+      'PUT /api/trees/:id': 'Update a specific tree',
+      'DELETE /api/trees/:id': 'Delete a specific tree'
+    }
+  });
+});
+
+// API Routes
+app.use('/api/trees', treeRoutes);
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  database.disconnect().then(() => {
+    process.exit(0);
+  });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📊 API endpoints available at http://localhost:${PORT}/api`);
+});

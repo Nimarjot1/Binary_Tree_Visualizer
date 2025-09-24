@@ -10,16 +10,10 @@ class Database {
   async connect() {
     try {
       const uri = process.env.MONGODB_URI;
-      if (!uri) {
-        throw new Error('❌ MONGODB_URI is not set in environment variables');
-      }
 
-      if (this.db) {
-        console.log('⚡ Using existing MongoDB connection');
-        return this.db;
-      }
+      // No need to pass deprecated options like useNewUrlParser or useUnifiedTopology
+      this.client = new MongoClient(uri); // Clean, modern usage
 
-      this.client = new MongoClient(uri);
       await this.client.connect();
       this.db = this.client.db('binary-tree-visualizer');
 
@@ -34,8 +28,6 @@ class Database {
   async disconnect() {
     if (this.client) {
       await this.client.close();
-      this.client = null;
-      this.db = null;
       console.log('📴 Disconnected from MongoDB');
     }
   }
